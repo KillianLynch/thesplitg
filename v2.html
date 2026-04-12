@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Split G — London's Guinness Guide</title>
+  <meta name="description" content="Find the best pint of Guinness in London. Every pub mapped, scored, and reviewed.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    /* =============================================
+       VARIABLES
+    ============================================= */
+    :root {
+      --bg: #0D0D0D;
+      --bg-raised: #151515;
+      --bg-card: #1A1A1A;
+      --bg-card-hover: #222222;
+      --border: #2A2A2A;
+      --border-hover: #444;
+      --cream: #FFF8ED;
+      --cream-dim: #CFC4B4;
+      --gold: #D4920B;
+      --gold-light: #F0B840;
+      --gold-muted: rgba(212, 146, 11, 0.12);
+      --amber: #E8A020;
+      --text: #E8E0D4;
+      --text-muted: #9A9088;
+      --tier-top: #D4920B;
+      --tier-great: #B89840;
+      --tier-solid: #8A8068;
+      --tier-ok: #5A5550;
+
+      --font-display: 'Unbounded', sans-serif;
+      --font-mono: 'Space Mono', monospace;
+
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* =============================================
+       RESET
+    ============================================= */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+    body {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+      overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none; }
+    button, input { font-family: inherit; border: none; outline: none; background: none; }
+    ::selection { background: var(--gold); color: var(--bg); }
+
+    /* =============================================
+       TICKER / MARQUEE
+    ============================================= */
+    .ticker {
+      width: 100%;
+      overflow: hidden;
+      background: var(--gold);
+      color: var(--bg);
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+      padding: 0.5rem 0;
+      position: relative;
+      z-index: 1001;
+    }
+
+    .ticker-track {
+      display: flex;
+      width: max-content;
+      animation: tickerScroll 40s linear infinite;
+    }
+
+    .ticker-track:hover { animation-play-state: paused; }
+
+    .ticker-item {
+      white-space: nowrap;
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .ticker-item .ticker-score {
+      background: var(--bg);
+      color: var(--gold);
+      padding: 0.1rem 0.4rem;
+      border-radius: 2px;
+      font-size: 0.65rem;
+    }
+
+    .ticker-dot {
+      width: 4px;
+      height: 4px;
+      background: var(--bg);
+      border-radius: 50%;
+      opacity: 0.4;
+      flex-shrink: 0;
+    }
+
+    @keyframes tickerScroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* =============================================
+       HEADER
+    ============================================= */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2.5rem;
+      background: rgba(13, 13, 13, 0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-logo {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1rem;
+      color: var(--cream);
+      letter-spacing: -0.02em;
+    }
+
+    .header-logo .logo-g {
+      color: var(--gold);
+      position: relative;
+    }
+
+    .header-stats {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      font-size: 0.75rem;
+      color: var(--cream-dim);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .header-stats .stat-val {
+      color: var(--cream);
+      font-weight: 700;
+    }
+
+    .header-nav {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .header-nav a {
+      font-family: var(--font-display);
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 0.5rem 1rem;
+      border: 1px solid transparent;
+      border-radius: 3px;
+      transition: all 0.25s ease;
+    }
+
+    .header-nav a:hover {
+      color: var(--cream);
+      border-color: var(--border);
+    }
+
+    .header-nav a.active {
+      color: var(--gold);
+      border-color: var(--gold);
+    }
+
+    /* =============================================
+       HERO
+    ============================================= */
+    .hero {
+      padding: 6rem 2.5rem 4rem;
+      position: relative;
+      overflow: hidden;
+      min-height: 70vh;
+      display: flex;
+      align-items: center;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -20%;
+      right: -10%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(212, 146, 11, 0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--border), transparent);
+    }
+
+    .hero-inner {
+      max-width: 1300px;
+      margin: 0 auto;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+
+    .hero-text {
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-overline {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      transform: translateY(15px);
+      animation: fadeUp 0.6s var(--ease-out-expo) 0.2s forwards;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: clamp(3.5rem, 7vw, 6.5rem);
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      color: var(--cream);
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeUp 0.7s var(--ease-out-expo) 0.35s forwards;
+    }
+
+    .hero-title .line {
+      display: block;
+    }
+
+    .hero-title .line-g {
+      color: var(--gold);
+      position: relative;
+      display: inline-block;
+    }
+
+    .hero-title .line-g::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 8%;
+      top: 54%;
+      height: 4px;
+      background: var(--cream);
+      transform-origin: left;
+      transform: scaleX(0);
+      animation: splitLine 0.5s var(--ease-out-expo) 1.2s forwards;
+    }
+
+    .hero-desc {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--cream-dim);
+      max-width: 400px;
+      line-height: 1.7;
+      opacity: 0;
+      transform: translateY(15px);
+      animation: fadeUp 0.6s var(--ease-out-expo) 0.55s forwards;
+    }
+
+    .hero-right {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      opacity: 0;
+      transform: translateX(30px);
+      animation: fadeLeft 0.8s var(--ease-out-expo) 0.7s forwards;
+    }
+
+    /* Hero feature cards (top 3 preview) */
+    .hero-podium {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .podium-card {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      padding: 1.2rem 1.5rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      transition: all 0.3s var(--ease-out-expo);
+      cursor: pointer;
+    }
+
+    .podium-card:hover {
+      border-color: var(--gold);
+      background: var(--bg-card-hover);
+      transform: translateX(6px);
+    }
+
+    .podium-rank {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 1.8rem;
+      color: var(--gold);
+      min-width: 44px;
+      line-height: 1;
+    }
+
+    .podium-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .podium-name {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--cream);
+      letter-spacing: -0.01em;
+    }
+
+    .podium-area {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .podium-score {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 1.5rem;
+      color: var(--cream);
+      min-width: 48px;
+      text-align: right;
+    }
+
+    .podium-score .score-max {
+      font-size: 0.55em;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    /* =============================================
+       STATS BAR
+    ============================================= */
+    .stats-bar {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 2.5rem;
+      display: flex;
+      justify-content: center;
+      gap: 3rem;
+      flex-wrap: wrap;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .stats-bar .stat {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .stats-bar .stat-value {
+      color: var(--cream);
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    .stats-bar .stat-label {
+      opacity: 0.7;
+    }
+
+    /* =============================================
+       MAP SECTION
+    ============================================= */
+    .map-section {
+      position: relative;
+    }
+
+    .map-section-header {
+      padding: 3rem 2.5rem 1.5rem;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      max-width: 1300px;
+      margin: 0 auto;
+    }
+
+    .map-section-title {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.4rem;
+      color: var(--cream);
+      letter-spacing: -0.02em;
+    }
+
+    .map-section-hint {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    #map {
+      width: 100%;
+      height: 450px;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Leaflet custom marker */
+    .custom-marker {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--gold);
+      color: var(--bg);
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 0.7rem;
+      border: 3px solid var(--bg);
+      box-shadow: 0 2px 12px rgba(212, 146, 11, 0.4);
+      transition: all 0.25s var(--ease-spring);
+      cursor: pointer;
+    }
+
+    .custom-marker:hover,
+    .custom-marker.active {
+      transform: scale(1.3);
+      box-shadow: 0 4px 20px rgba(212, 146, 11, 0.6);
+    }
+
+    /* Leaflet popup overrides */
+    .leaflet-popup-content-wrapper {
+      background: var(--bg-card) !important;
+      color: var(--cream) !important;
+      border-radius: 4px !important;
+      border: 1px solid var(--border) !important;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4) !important;
+    }
+
+    .leaflet-popup-tip { background: var(--bg-card) !important; }
+
+    .leaflet-popup-content {
+      margin: 0.8rem 1rem !important;
+      font-family: var(--font-mono) !important;
+      font-size: 0.75rem !important;
+    }
+
+    .popup-name {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.85rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .popup-area {
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .popup-score {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 1.2rem;
+      color: var(--gold);
+    }
+
+    .popup-score span {
+      font-size: 0.6em;
+      font-weight: 400;
+      color: var(--text-muted);
+    }
+
+    .leaflet-popup-close-button {
+      color: var(--text-muted) !important;
+      font-size: 18px !important;
+      top: 6px !important;
+      right: 8px !important;
+    }
+
+    /* Remove default leaflet branding styling */
+    .leaflet-control-attribution {
+      background: rgba(13,13,13,0.8) !important;
+      color: var(--text-muted) !important;
+      font-size: 0.6rem !important;
+    }
+    .leaflet-control-attribution a { color: var(--cream-dim) !important; }
+
+    /* =============================================
+       RANKINGS SECTION
+    ============================================= */
+    .rankings {
+      padding: 3rem 2.5rem 6rem;
+      max-width: 1300px;
+      margin: 0 auto;
+    }
+
+    .rankings-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .rankings-title {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.4rem;
+      color: var(--cream);
+      letter-spacing: -0.02em;
+    }
+
+    .rankings-count {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    /* Filter & Sort Controls */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-right: 0.25rem;
+    }
+
+    .filter-chip {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 0.4rem 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: transparent;
+    }
+
+    .filter-chip:hover {
+      color: var(--cream);
+      border-color: var(--border-hover);
+    }
+
+    .filter-chip.active {
+      color: var(--bg);
+      background: var(--gold);
+      border-color: var(--gold);
+    }
+
+    .sort-btn {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 0.4rem 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .sort-btn:hover { color: var(--cream); border-color: var(--border-hover); }
+    .sort-btn.active { color: var(--gold); border-color: var(--gold); }
+    .sort-btn .arrow { font-size: 0.8em; }
+
+    /* Controls divider */
+    .controls-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+    }
+
+    /* Rankings Grid */
+    .rankings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .rankings-grid.empty::after {
+      content: 'No pubs match that filter. Try broadening your search.';
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* Pub Card */
+    .pub-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1.5rem;
+      cursor: pointer;
+      transition: all 0.3s var(--ease-out-expo);
+      position: relative;
+      transform: rotate(var(--r, 0deg)) translateZ(0);
+      backface-visibility: hidden;
+      -webkit-font-smoothing: subpixel-antialiased;
+      opacity: 0;
+      animation: cardIn 0.5s var(--ease-out-expo) var(--delay, 0s) forwards;
+    }
+
+    .pub-card:hover {
+      transform: rotate(0deg) translateY(-6px) translateZ(0);
+      border-color: var(--gold);
+      background: var(--bg-card-hover);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 0 1px var(--gold);
+    }
+
+    .pub-card.highlighted {
+      border-color: var(--gold);
+      box-shadow: 0 0 20px rgba(212, 146, 11, 0.15);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .card-rank {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      background: var(--bg);
+      padding: 0.25rem 0.55rem;
+      border-radius: 2px;
+      letter-spacing: 0.05em;
+    }
+
+    .card-score {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 1.8rem;
+      line-height: 1;
+      color: var(--gold);
+    }
+
+    .card-score-max {
+      font-size: 0.35em;
+      font-weight: 400;
+      color: var(--text-muted);
+      vertical-align: baseline;
+    }
+
+    .card-name {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--cream);
+      margin-bottom: 0.3rem;
+      letter-spacing: -0.01em;
+      line-height: 1.3;
+    }
+
+    .card-area {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-bottom: 0.8rem;
+    }
+
+    .card-tags {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .card-tag {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--gold);
+      background: var(--gold-muted);
+      padding: 0.2rem 0.5rem;
+      border-radius: 2px;
+    }
+
+    .card-review {
+      font-size: 0.82rem;
+      color: var(--cream-dim);
+      line-height: 1.6;
+      font-style: italic;
+      border-top: 1px solid var(--border);
+      padding-top: 0.8rem;
+    }
+
+    /* Score bar at bottom of card */
+    .card-bar {
+      margin-top: 1rem;
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .card-bar-fill {
+      height: 100%;
+      background: linear-gradient(to right, var(--gold), var(--gold-light));
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.8s var(--ease-out-expo) 0.3s;
+    }
+
+    /* =============================================
+       FOOTER
+    ============================================= */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 3rem 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .footer-logo {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 0.85rem;
+      color: var(--cream);
+    }
+
+    .footer-tagline {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .footer-copy {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      opacity: 0.5;
+    }
+
+    /* =============================================
+       ANIMATIONS
+    ============================================= */
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeLeft {
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes splitLine {
+      to { transform: scaleX(1); }
+    }
+
+    @keyframes cardIn {
+      to { opacity: 1; }
+    }
+
+    /* =============================================
+       BACK TO TOP BUTTON
+    ============================================= */
+    .back-to-top {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 44px;
+      height: 44px;
+      background: var(--gold);
+      color: var(--bg);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s ease;
+      z-index: 900;
+      font-size: 1.1rem;
+      border: none;
+    }
+
+    .back-to-top.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .back-to-top:hover {
+      background: var(--gold-light);
+      transform: translateY(-2px);
+    }
+
+    /* =============================================
+       RESPONSIVE
+    ============================================= */
+    @media (max-width: 900px) {
+      .hero-inner {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+      }
+
+      .hero {
+        padding: 4rem 1.5rem 3rem;
+        min-height: auto;
+      }
+
+      .header-stats { display: none; }
+
+      .stats-bar {
+        gap: 1.5rem;
+        padding: 1rem 1.5rem;
+      }
+
+      .stats-bar .stat { font-size: 0.65rem; }
+
+      .map-section-header { padding: 2rem 1.5rem 1rem; }
+
+      #map { height: 350px; }
+
+      .rankings { padding: 2rem 1.5rem 4rem; }
+
+      .rankings-grid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      }
+
+      .controls { gap: 0.75rem; }
+
+      .footer {
+        flex-direction: column;
+        text-align: center;
+        padding: 2rem 1.5rem;
+      }
+
+      .footer-left {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+    }
+
+    @media (max-width: 550px) {
+      .header { padding: 0.75rem 1rem; }
+      .header-nav { display: none; }
+
+      .hero { padding: 3rem 1.25rem 2rem; }
+      .hero-title { font-size: clamp(2.8rem, 14vw, 4rem); }
+
+      .podium-card { padding: 1rem; gap: 1rem; }
+
+      .rankings-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .filter-group { gap: 0.35rem; }
+      .filter-chip { font-size: 0.62rem; padding: 0.35rem 0.6rem; }
+
+      .stats-bar { gap: 1rem; }
+    }
+
+    /* Brighten + warm the dark map tiles */
+    .map-tiles {
+      filter: brightness(2.0) sepia(0.12) saturate(0.85);
+    }
+
+    /* Leaflet zoom controls */
+    .leaflet-control-zoom a {
+      background: var(--bg-card) !important;
+      color: var(--cream) !important;
+      border-color: var(--border) !important;
+    }
+    .leaflet-control-zoom a:hover {
+      background: var(--bg-card-hover) !important;
+    }
+
+    section[id] { scroll-margin-top: 60px; }
+  </style>
+</head>
+<body>
+
+  <!-- ====== TICKER ====== -->
+  <div class="ticker" aria-hidden="true">
+    <div class="ticker-track" id="tickerTrack"></div>
+  </div>
+
+  <!-- ====== HEADER ====== -->
+  <header class="header">
+    <a href="#" class="header-logo">the split <span class="logo-g">G</span></a>
+    <div class="header-stats" id="headerStats"></div>
+    <nav class="header-nav">
+      <a href="#map-section" class="active">Map</a>
+      <a href="#rankings-section">All Pubs</a>
+    </nav>
+  </header>
+
+  <!-- ====== HERO ====== -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-text">
+        <p class="hero-overline">London's Guinness Guide</p>
+        <h1 class="hero-title">
+          <span class="line">Split</span>
+          <span class="line">the <span class="line-g">G</span></span>
+        </h1>
+        <p class="hero-desc">Every pub. Every pour. Every pint of Guinness in London — mapped, scored, and judged out of 10. No mercy. No shortcuts.</p>
+      </div>
+      <div class="hero-right">
+        <div class="hero-podium" id="heroPodium"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== STATS BAR ====== -->
+  <div class="stats-bar" id="statsBar"></div>
+
+  <!-- ====== MAP ====== -->
+  <section class="map-section" id="map-section">
+    <div class="map-section-header">
+      <h2 class="map-section-title">The Map</h2>
+      <span class="map-section-hint">Click a pin to see the pub</span>
+    </div>
+    <div id="map"></div>
+  </section>
+
+  <!-- ====== RANKINGS ====== -->
+  <section class="rankings" id="rankings-section">
+    <div class="rankings-header">
+      <h2 class="rankings-title">All Reviews <span class="rankings-count" id="rankingsCount"></span></h2>
+    </div>
+    <div class="controls">
+      <span class="filter-label">Area</span>
+      <div class="filter-group" id="areaFilters"></div>
+      <div class="controls-divider"></div>
+      <span class="filter-label">Score</span>
+      <div class="filter-group" id="scoreFilters"></div>
+      <div class="controls-divider"></div>
+      <div class="filter-group" id="sortControls"></div>
+    </div>
+    <div class="rankings-grid" id="rankingsGrid"></div>
+  </section>
+
+  <!-- ====== FOOTER ====== -->
+  <footer class="footer">
+    <div class="footer-left">
+      <span class="footer-logo">the split G</span>
+      <span class="footer-tagline">Honest pints. Honest reviews.</span>
+    </div>
+    <span class="footer-copy">&copy; 2026 The Split G. All pints reserved.</span>
+  </footer>
+
+  <!-- ====== BACK TO TOP ====== -->
+  <button class="back-to-top" id="backToTop" aria-label="Back to top">&uarr;</button>
+
+  <!-- ====== JAVASCRIPT ====== -->
+  <script>
+    // ——————————————————————————————
+    // PUB DATA
+    // ——————————————————————————————
+    const pubs = [
+      {
+        id: 1, name: "The Toucan", area: "Soho", postcode: "W1", region: "Central",
+        lat: 51.5133, lng: -0.1325, score: 9.4,
+        tags: ["Iconic", "Lively"],
+        review: "The gold standard. Two-part pour executed with reverence. Creamy, cold, and utterly flawless every single time."
+      },
+      {
+        id: 2, name: "The Auld Shillelagh", area: "Stoke Newington", postcode: "N16", region: "North",
+        lat: 51.5635, lng: -0.0785, score: 9.1,
+        tags: ["Authentic", "Cosy"],
+        review: "A proper Irish pub with a proper Irish pint. The Guinness here has soul — rich, velvety, and poured with genuine care."
+      },
+      {
+        id: 3, name: "The Faltering Fullback", area: "Finsbury Park", postcode: "N4", region: "North",
+        lat: 51.5645, lng: -0.1035, score: 8.7,
+        tags: ["Garden", "Relaxed"],
+        review: "Tucked away with a legendary beer garden. Smooth cascade, tight head, proper dome. Consistently excellent."
+      },
+      {
+        id: 4, name: "Ye Olde Cheshire Cheese", area: "Fleet Street", postcode: "EC4", region: "Central",
+        lat: 51.5142, lng: -0.1073, score: 8.5,
+        tags: ["Historic", "Character"],
+        review: "Rebuilt after the Great Fire, still pouring beautifully. Drinking Guinness in a 17th-century cellar hits different."
+      },
+      {
+        id: 5, name: "The Holly Bush", area: "Hampstead", postcode: "NW3", region: "North",
+        lat: 51.5585, lng: -0.1776, score: 8.2,
+        tags: ["Traditional", "Warm"],
+        review: "A snug Hampstead gem. The pour isn't rushed, the glass is always clean, and the setting makes every sip feel earned."
+      },
+      {
+        id: 6, name: "The Lamb & Flag", area: "Covent Garden", postcode: "WC2", region: "Central",
+        lat: 51.5118, lng: -0.1265, score: 7.8,
+        tags: ["Central", "Bustling"],
+        review: "Surprisingly good for a tourist area. The head could be tighter, but the flavour is honest and the pour is patient."
+      },
+      {
+        id: 7, name: "The Churchill Arms", area: "Kensington", postcode: "W8", region: "West",
+        lat: 51.5068, lng: -0.1943, score: 7.5,
+        tags: ["Quirky", "Photogenic"],
+        review: "The exterior is famous, but the Guinness deserves attention too. A solid pour — consistent, creamy, and well-kept."
+      },
+      {
+        id: 8, name: "The Prospect of Whitby", area: "Wapping", postcode: "E1W", region: "East",
+        lat: 51.5080, lng: -0.0555, score: 7.2,
+        tags: ["Riverside", "Heritage"],
+        review: "London's oldest riverside pub. Decent Guinness — good body, acceptable head. The Thames view elevates it."
+      }
+    ];
+
+    // Sort by score descending initially
+    pubs.sort((a, b) => b.score - a.score);
+    pubs.forEach((p, i) => p.rank = i + 1);
+
+    // ——————————————————————————————
+    // TICKER
+    // ——————————————————————————————
+    function buildTicker() {
+      const track = document.getElementById('tickerTrack');
+      let html = '';
+      // Duplicate for seamless loop
+      for (let dup = 0; dup < 2; dup++) {
+        pubs.forEach(p => {
+          html += `<span class="ticker-item">${p.name} <span class="ticker-score">${p.score}</span></span><span class="ticker-dot"></span>`;
+        });
+      }
+      track.innerHTML = html;
+    }
+
+    // ——————————————————————————————
+    // HEADER STATS
+    // ——————————————————————————————
+    function buildHeaderStats() {
+      document.getElementById('headerStats').innerHTML = `
+        <span class="stat"><span class="stat-val">${pubs.length}</span> pubs reviewed</span>
+        <span class="stat">est. <span class="stat-val">2026</span></span>
+      `;
+    }
+
+    // ——————————————————————————————
+    // HERO PODIUM (Top 3)
+    // ——————————————————————————————
+    function buildPodium() {
+      const top3 = [...pubs].sort((a, b) => b.score - a.score).slice(0, 3);
+      const container = document.getElementById('heroPodium');
+      container.innerHTML = top3.map((p, i) => `
+        <div class="podium-card" data-pub-id="${p.id}" onclick="panToMarker(${p.id})">
+          <span class="podium-rank">${i + 1}</span>
+          <div class="podium-info">
+            <div class="podium-name">${p.name}</div>
+            <div class="podium-area">${p.area}, ${p.postcode}</div>
+          </div>
+          <span class="podium-score">${p.score}<span class="score-max">/10</span></span>
+        </div>
+      `).join('');
+    }
+
+    // ——————————————————————————————
+    // STATS BAR
+    // ——————————————————————————————
+    function buildStatsBar() {
+      const best = [...pubs].sort((a, b) => b.score - a.score)[0];
+      const regions = [...new Set(pubs.map(p => p.region))];
+      document.getElementById('statsBar').innerHTML = `
+        <div class="stat"><span class="stat-label">Reviewed</span> <span class="stat-value">${pubs.length}</span></div>
+        <div class="stat"><span class="stat-label">Top Rated</span> <span class="stat-value">${best.name}</span></div>
+        <div class="stat"><span class="stat-label">Areas</span> <span class="stat-value">${regions.length}</span></div>
+      `;
+    }
+
+    // ——————————————————————————————
+    // MAP
+    // ——————————————————————————————
+    let map;
+    const markers = {};
+
+    function initMap() {
+      map = L.map('map', {
+        center: [51.525, -0.12],
+        zoom: 12,
+        zoomControl: true,
+        scrollWheelZoom: true
+      });
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+        maxZoom: 18,
+        className: 'map-tiles'
+      }).addTo(map);
+
+      pubs.forEach(p => {
+        const icon = L.divIcon({
+          className: '',
+          html: `<div class="custom-marker" data-pub-id="${p.id}">${p.score}</div>`,
+          iconSize: [38, 38],
+          iconAnchor: [19, 19]
+        });
+
+        const marker = L.marker([p.lat, p.lng], { icon }).addTo(map);
+
+        const popupContent = `
+          <div class="popup-name">${p.name}</div>
+          <div class="popup-area">${p.area}, ${p.postcode}</div>
+          <div class="popup-score">${p.score} <span>/ 10</span></div>
+        `;
+        marker.bindPopup(popupContent, { closeButton: true, offset: [0, -10] });
+
+        marker.on('click', () => {
+          highlightCard(p.id);
+        });
+
+        markers[p.id] = marker;
+      });
+    }
+
+    function panToMarker(pubId) {
+      const pub = pubs.find(p => p.id === pubId);
+      if (pub && markers[pubId]) {
+        map.flyTo([pub.lat, pub.lng], 15, { duration: 0.8 });
+        markers[pubId].openPopup();
+        // Scroll map into view
+        document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    function highlightCard(pubId) {
+      document.querySelectorAll('.pub-card').forEach(c => c.classList.remove('highlighted'));
+      const card = document.querySelector(`.pub-card[data-pub-id="${pubId}"]`);
+      if (card) {
+        card.classList.add('highlighted');
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => card.classList.remove('highlighted'), 2500);
+      }
+    }
+
+    // ——————————————————————————————
+    // FILTERS & SORT
+    // ——————————————————————————————
+    let activeRegion = 'all';
+    let activeScoreFilter = 'all';
+    let currentSort = 'score-desc';
+
+    function buildControls() {
+      // Area filters
+      const regions = ['All', ...new Set(pubs.map(p => p.region))];
+      document.getElementById('areaFilters').innerHTML = regions.map(r => {
+        const val = r === 'All' ? 'all' : r;
+        return `<button class="filter-chip ${val === 'all' ? 'active' : ''}" data-region="${val}" onclick="setRegion('${val}')">${r}</button>`;
+      }).join('');
+
+      // Score filters
+      const scores = [
+        { label: 'All', val: 'all' },
+        { label: '9+', val: '9' },
+        { label: '8+', val: '8' },
+        { label: '7+', val: '7' },
+        { label: '<7', val: 'lt7' }
+      ];
+      document.getElementById('scoreFilters').innerHTML = scores.map(s =>
+        `<button class="filter-chip ${s.val === 'all' ? 'active' : ''}" data-score-filter="${s.val}" onclick="setScoreFilter('${s.val}')">${s.label}</button>`
+      ).join('');
+
+      // Sort
+      document.getElementById('sortControls').innerHTML = `
+        <button class="sort-btn active" data-sort="score-desc" onclick="setSort('score-desc')">Score <span class="arrow">&darr;</span></button>
+        <button class="sort-btn" data-sort="score-asc" onclick="setSort('score-asc')">Score <span class="arrow">&uarr;</span></button>
+        <button class="sort-btn" data-sort="name-asc" onclick="setSort('name-asc')">A&ndash;Z</button>
+      `;
+    }
+
+    function setRegion(region) {
+      activeRegion = region;
+      document.querySelectorAll('#areaFilters .filter-chip').forEach(c => {
+        c.classList.toggle('active', c.dataset.region === region);
+      });
+      renderCards();
+    }
+
+    function setScoreFilter(val) {
+      activeScoreFilter = val;
+      document.querySelectorAll('#scoreFilters .filter-chip').forEach(c => {
+        c.classList.toggle('active', c.dataset.scoreFilter === val);
+      });
+      renderCards();
+    }
+
+    function setSort(sort) {
+      currentSort = sort;
+      document.querySelectorAll('.sort-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.sort === sort);
+      });
+      renderCards();
+    }
+
+    // ——————————————————————————————
+    // RENDER CARDS
+    // ——————————————————————————————
+    const rotations = {};
+    pubs.forEach(p => {
+      rotations[p.id] = (Math.random() - 0.5) * 2.4; // -1.2 to 1.2 degrees
+    });
+
+    function getFilteredPubs() {
+      let filtered = [...pubs];
+
+      if (activeRegion !== 'all') {
+        filtered = filtered.filter(p => p.region === activeRegion);
+      }
+
+      if (activeScoreFilter !== 'all') {
+        if (activeScoreFilter === 'lt7') {
+          filtered = filtered.filter(p => p.score < 7);
+        } else {
+          const min = parseInt(activeScoreFilter);
+          filtered = filtered.filter(p => p.score >= min);
+        }
+      }
+
+      // Sort
+      switch (currentSort) {
+        case 'score-desc':
+          filtered.sort((a, b) => b.score - a.score);
+          break;
+        case 'score-asc':
+          filtered.sort((a, b) => a.score - b.score);
+          break;
+        case 'name-asc':
+          filtered.sort((a, b) => a.name.localeCompare(b.name));
+          break;
+      }
+
+      return filtered;
+    }
+
+    function renderCards() {
+      const filtered = getFilteredPubs();
+      const grid = document.getElementById('rankingsGrid');
+
+      document.getElementById('rankingsCount').textContent = `(${filtered.length})`;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '';
+        grid.classList.add('empty');
+        return;
+      }
+
+      grid.classList.remove('empty');
+      grid.innerHTML = filtered.map((p, i) => `
+        <article class="pub-card"
+          data-pub-id="${p.id}"
+          style="--r: ${rotations[p.id]}deg; --delay: ${i * 0.04}s"
+          onclick="panToMarker(${p.id})"
+        >
+          <div class="card-top">
+            <span class="card-rank">#${p.rank}</span>
+            <span class="card-score">${p.score}<span class="card-score-max">/10</span></span>
+          </div>
+          <h3 class="card-name">${p.name}</h3>
+          <p class="card-area">${p.area}, ${p.postcode}</p>
+          <div class="card-tags">
+            ${p.tags.map(t => `<span class="card-tag">${t}</span>`).join('')}
+          </div>
+          <p class="card-review">"${p.review}"</p>
+          <div class="card-bar"><div class="card-bar-fill" data-width="${p.score * 10}"></div></div>
+        </article>
+      `).join('');
+
+      // Animate bars after render
+      requestAnimationFrame(() => {
+        grid.querySelectorAll('.card-bar-fill').forEach(bar => {
+          bar.style.width = bar.dataset.width + '%';
+        });
+      });
+    }
+
+    // ——————————————————————————————
+    // BACK TO TOP
+    // ——————————————————————————————
+    const backToTop = document.getElementById('backToTop');
+    window.addEventListener('scroll', () => {
+      backToTop.classList.toggle('visible', window.scrollY > 600);
+    }, { passive: true });
+    backToTop.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // ——————————————————————————————
+    // INIT
+    // ——————————————————————————————
+    buildTicker();
+    buildHeaderStats();
+    buildPodium();
+    buildStatsBar();
+    buildControls();
+    renderCards();
+    initMap();
+  </script>
+</body>
+</html>
