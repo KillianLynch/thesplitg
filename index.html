@@ -370,6 +370,11 @@
       font-weight: 400;
     }
 
+    .podium-price {
+      font-size: 0.65rem;
+      color: var(--cream-dim);
+    }
+
     /* =============================================
        STATS BAR
     ============================================= */
@@ -505,6 +510,12 @@
       font-size: 0.6em;
       font-weight: 400;
       color: var(--text-muted);
+    }
+
+    .popup-price {
+      font-size: 0.72rem;
+      color: var(--cream-dim);
+      margin-top: 0.3rem;
     }
 
     .leaflet-popup-close-button {
@@ -751,6 +762,14 @@
       font-style: italic;
       border-top: 1px solid var(--border);
       padding-top: 0.8rem;
+    }
+
+    .card-date {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      opacity: 0.7;
+      margin-top: 0.8rem;
+      letter-spacing: 0.04em;
     }
 
     /* Score bar at bottom of card */
@@ -1013,6 +1032,7 @@
     <div class="footer-left">
       <span class="footer-logo">the split G</span>
       <span class="footer-tagline">Honest pints. Honest reviews.</span>
+      <span class="footer-tagline">Brought to you by Killian Lynch.</span>
     </div>
     <span class="footer-copy">&copy; 2026 The Split G. All pints reserved.</span>
   </footer>
@@ -1027,58 +1047,40 @@
     // ——————————————————————————————
     const pubs = [
       {
-        id: 1, name: "The Toucan", area: "Soho", postcode: "W1", region: "Central",
-        lat: 51.5133, lng: -0.1325, score: 9.4,
-        tags: ["Iconic", "Lively"],
-        review: "The gold standard. Two-part pour executed with reverence. Creamy, cold, and utterly flawless every single time."
+        id: 1, name: "The Faltering Fullback", area: "Finsbury Park", postcode: "N4", region: "North",
+        lat: 51.5645, lng: -0.1035, score: 8.8, price: "£6.50", date: "2026-04-06",
+        tags: ["Character", "Garden"],
+        review: "Great overall. Good rich taste, creamy, chocolate notes, and perfect nitro."
       },
       {
-        id: 2, name: "The Auld Shillelagh", area: "Stoke Newington", postcode: "N16", region: "North",
-        lat: 51.5635, lng: -0.0785, score: 9.1,
-        tags: ["Authentic", "Cosy"],
-        review: "A proper Irish pub with a proper Irish pint. The Guinness here has soul — rich, velvety, and poured with genuine care."
+        id: 2, name: "The Devonshire", area: "Soho", postcode: "W1", region: "Central",
+        lat: 51.5104, lng: -0.1340, score: 8.1, price: "£7.25", date: "2026-04-11",
+        tags: ["Iconic", "Gastropub"],
+        review: "Bit of a letdown for the hype. Iconic place but the Guinness was a bit flat. Okay flavour."
       },
       {
-        id: 3, name: "The Faltering Fullback", area: "Finsbury Park", postcode: "N4", region: "North",
-        lat: 51.5645, lng: -0.1035, score: 8.7,
-        tags: ["Garden", "Relaxed"],
-        review: "Tucked away with a legendary beer garden. Smooth cascade, tight head, proper dome. Consistently excellent."
-      },
-      {
-        id: 4, name: "Ye Olde Cheshire Cheese", area: "Fleet Street", postcode: "EC4", region: "Central",
-        lat: 51.5142, lng: -0.1073, score: 8.5,
-        tags: ["Historic", "Character"],
-        review: "Rebuilt after the Great Fire, still pouring beautifully. Drinking Guinness in a 17th-century cellar hits different."
-      },
-      {
-        id: 5, name: "The Holly Bush", area: "Hampstead", postcode: "NW3", region: "North",
-        lat: 51.5585, lng: -0.1776, score: 8.2,
-        tags: ["Traditional", "Warm"],
-        review: "A snug Hampstead gem. The pour isn't rushed, the glass is always clean, and the setting makes every sip feel earned."
-      },
-      {
-        id: 6, name: "The Lamb & Flag", area: "Covent Garden", postcode: "WC2", region: "Central",
-        lat: 51.5118, lng: -0.1265, score: 7.8,
-        tags: ["Central", "Bustling"],
-        review: "Surprisingly good for a tourist area. The head could be tighter, but the flavour is honest and the pour is patient."
-      },
-      {
-        id: 7, name: "The Churchill Arms", area: "Kensington", postcode: "W8", region: "West",
-        lat: 51.5068, lng: -0.1943, score: 7.5,
-        tags: ["Quirky", "Photogenic"],
-        review: "The exterior is famous, but the Guinness deserves attention too. A solid pour — consistent, creamy, and well-kept."
-      },
-      {
-        id: 8, name: "The Prospect of Whitby", area: "Wapping", postcode: "E1W", region: "East",
-        lat: 51.5080, lng: -0.0555, score: 7.2,
-        tags: ["Riverside", "Heritage"],
-        review: "London's oldest riverside pub. Decent Guinness — good body, acceptable head. The Thames view elevates it."
+        id: 3, name: "The Birdcage", area: "Columbia Road", postcode: "E2", region: "East",
+        lat: 51.5298, lng: -0.0723, score: 2.4, price: "£7.25", date: "2026-04-12",
+        tags: ["Trendy", "Market"],
+        review: "Terrible. Rushed single pour. No dedicated tap. Tastes like a mixture of beers. No nitro."
       }
     ];
 
     // Sort by score descending initially
     pubs.sort((a, b) => b.score - a.score);
     pubs.forEach((p, i) => p.rank = i + 1);
+
+    // ——————————————————————————————
+    // HELPERS
+    // ——————————————————————————————
+    function formatDate(dateStr) {
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+    }
+
+    function parsePriceNum(priceStr) {
+      return parseFloat(priceStr.replace('£', ''));
+    }
 
     // ——————————————————————————————
     // TICKER
@@ -1089,7 +1091,7 @@
       // Duplicate for seamless loop
       for (let dup = 0; dup < 2; dup++) {
         pubs.forEach(p => {
-          html += `<span class="ticker-item">${p.name} <span class="ticker-score">${p.score}</span></span><span class="ticker-dot"></span>`;
+          html += `<span class="ticker-item">${p.name} <span class="ticker-score">${p.score}</span> ${p.price}</span><span class="ticker-dot"></span>`;
         });
       }
       track.innerHTML = html;
@@ -1116,7 +1118,7 @@
           <span class="podium-rank">${i + 1}</span>
           <div class="podium-info">
             <div class="podium-name">${p.name}</div>
-            <div class="podium-area">${p.area}, ${p.postcode}</div>
+            <div class="podium-area">${p.area}, ${p.postcode} · <span class="podium-price">${p.price}</span></div>
           </div>
           <span class="podium-score">${p.score}<span class="score-max">/10</span></span>
         </div>
@@ -1170,6 +1172,7 @@
           <div class="popup-name">${p.name}</div>
           <div class="popup-area">${p.area}, ${p.postcode}</div>
           <div class="popup-score">${p.score} <span>/ 10</span></div>
+          <div class="popup-price">Pint: ${p.price}</div>
         `;
         marker.bindPopup(popupContent, { closeButton: true, offset: [0, -10] });
 
@@ -1232,6 +1235,8 @@
       document.getElementById('sortControls').innerHTML = `
         <button class="sort-btn active" data-sort="score-desc" onclick="setSort('score-desc')">Score <span class="arrow">&darr;</span></button>
         <button class="sort-btn" data-sort="score-asc" onclick="setSort('score-asc')">Score <span class="arrow">&uarr;</span></button>
+        <button class="sort-btn" data-sort="price-asc" onclick="setSort('price-asc')">Price <span class="arrow">&uarr;</span></button>
+        <button class="sort-btn" data-sort="price-desc" onclick="setSort('price-desc')">Price <span class="arrow">&darr;</span></button>
         <button class="sort-btn" data-sort="name-asc" onclick="setSort('name-asc')">A&ndash;Z</button>
       `;
     }
@@ -1292,6 +1297,12 @@
         case 'score-asc':
           filtered.sort((a, b) => a.score - b.score);
           break;
+        case 'price-asc':
+          filtered.sort((a, b) => parsePriceNum(a.price) - parsePriceNum(b.price));
+          break;
+        case 'price-desc':
+          filtered.sort((a, b) => parsePriceNum(b.price) - parsePriceNum(a.price));
+          break;
         case 'name-asc':
           filtered.sort((a, b) => a.name.localeCompare(b.name));
           break;
@@ -1324,12 +1335,13 @@
             <span class="card-score">${p.score}<span class="card-score-max">/10</span></span>
           </div>
           <h3 class="card-name">${p.name}</h3>
-          <p class="card-area">${p.area}, ${p.postcode}</p>
+          <p class="card-area">${p.area}, ${p.postcode} · ${p.price}</p>
           <div class="card-tags">
             ${p.tags.map(t => `<span class="card-tag">${t}</span>`).join('')}
           </div>
           <p class="card-review">"${p.review}"</p>
           <div class="card-bar"><div class="card-bar-fill" data-width="${p.score * 10}"></div></div>
+          <p class="card-date">Visited ${formatDate(p.date)}</p>
         </article>
       `).join('');
 
