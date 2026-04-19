@@ -1103,7 +1103,7 @@
       // Duplicate for seamless loop
       for (let dup = 0; dup < 2; dup++) {
         pubs.forEach(p => {
-          html += `<span class="ticker-item">${p.name} <span class="ticker-score">${p.score}</span> ${p.price}</span><span class="ticker-dot"></span>`;
+          html += `<span class="ticker-item">${p.name} <span class="ticker-score">${p.score.toFixed(1)}</span> ${p.price}</span><span class="ticker-dot"></span>`;
         });
       }
       track.innerHTML = html;
@@ -1132,7 +1132,7 @@
             <div class="podium-name">${p.name}</div>
             <div class="podium-area">${p.area}, ${p.postcode} · <span class="podium-price">${p.price}</span></div>
           </div>
-          <span class="podium-score">${p.score}<span class="score-max">/10</span></span>
+          <span class="podium-score">${p.score.toFixed(1)}<span class="score-max">/10</span></span>
         </div>
       `).join('');
     }
@@ -1173,7 +1173,7 @@
       pubs.forEach(p => {
         const icon = L.divIcon({
           className: '',
-          html: `<div class="custom-marker" data-pub-id="${p.id}">${p.score}</div>`,
+          html: `<div class="custom-marker" data-pub-id="${p.id}">${p.score.toFixed(1)}</div>`,
           iconSize: [38, 38],
           iconAnchor: [19, 19]
         });
@@ -1183,7 +1183,7 @@
         const popupContent = `
           <div class="popup-name">${p.name}</div>
           <div class="popup-area">${p.area}, ${p.postcode}</div>
-          <div class="popup-score">${p.score} <span>/ 10</span></div>
+          <div class="popup-score">${p.score.toFixed(1)} <span>/ 10</span></div>
           <div class="popup-price">Pint: ${p.price}</div>
         `;
         marker.bindPopup(popupContent, { closeButton: true, offset: [0, -10] });
@@ -1344,7 +1344,7 @@
         >
           <div class="card-top">
             <span class="card-rank">#${p.rank}</span>
-            <span class="card-score">${p.score}<span class="card-score-max">/10</span></span>
+            <span class="card-score">${p.score.toFixed(1)}<span class="card-score-max">/10</span></span>
           </div>
           <h3 class="card-name">${p.name}</h3>
           <p class="card-area">${p.area}, ${p.postcode} · ${p.price}</p>
