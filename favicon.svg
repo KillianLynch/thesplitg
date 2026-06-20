@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F0B840"/>
+      <stop offset="1" stop-color="#C8870A"/>
+    </linearGradient>
+    <clipPath id="glass">
+      <path d="M9.5 6.5 H22.5 L20.3 24.3 Q20.05 26.5 17.65 26.5 H14.35 Q11.95 26.5 11.7 24.3 Z"/>
+    </clipPath>
+  </defs>
+  <!-- rounded gold tile -->
+  <rect width="32" height="32" rx="7" fill="url(#bg)"/>
+  <!-- pint: stout body + cream head, clipped to glass shape -->
+  <g clip-path="url(#glass)">
+    <rect x="8" y="5" width="16" height="23" fill="#0E0A07"/>
+    <path d="M8 5 H24 V11 Q16 13.2 8 11 Z" fill="#FFF8ED"/>
+  </g>
+  <!-- glass rim/edge highlight -->
+  <path d="M9.5 6.5 H22.5 L20.3 24.3 Q20.05 26.5 17.65 26.5 H14.35 Q11.95 26.5 11.7 24.3 Z"
+        fill="none" stroke="#FFF8ED" stroke-opacity="0.4" stroke-width="0.9" stroke-linejoin="round"/>
+</svg>
