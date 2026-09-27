@@ -954,8 +954,9 @@
     }
 
     /* Brighten + warm the dark map tiles */
+    /* OSM tiles are light; invert them to a dark basemap with a warm tint */
     .map-tiles {
-      filter: brightness(2.0) sepia(0.12) saturate(0.85);
+      filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9) sepia(0.12) saturate(0.6);
     }
 
     /* Leaflet zoom controls */
@@ -1261,8 +1262,8 @@
         scrollWheelZoom: true
       });
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 18,
         className: 'map-tiles'
       }).addTo(map);
