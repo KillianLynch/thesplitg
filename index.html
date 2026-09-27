@@ -12,6 +12,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css" />
+  <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.4/leaflet-maplibre-gl.js"></script>
   <!-- Vercel Web Analytics -->
   <script>
     window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
@@ -954,9 +957,8 @@
     }
 
     /* Brighten + warm the dark map tiles */
-    /* OSM tiles are light; invert them to a dark basemap with a warm tint */
     .map-tiles {
-      filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9) sepia(0.12) saturate(0.6);
+      filter: brightness(2.0) sepia(0.12) saturate(0.85);
     }
 
     /* Leaflet zoom controls */
@@ -1262,9 +1264,9 @@
         scrollWheelZoom: true
       });
 
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 18,
+      // OpenFreeMap dark vector basemap (no API key); attribution comes from the style
+      L.maplibreGL({
+        style: 'https://tiles.openfreemap.org/styles/dark',
         className: 'map-tiles'
       }).addTo(map);
 
