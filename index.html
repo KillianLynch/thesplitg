@@ -957,8 +957,9 @@
     }
 
     /* Brighten + warm the dark map tiles */
+    /* Strip all colour for a black-washed basemap, with a slight warm tint */
     .map-tiles {
-      filter: brightness(2.0) sepia(0.12) saturate(0.85);
+      filter: grayscale(1) brightness(1.4) sepia(0.12);
     }
 
     /* Leaflet zoom controls */
